@@ -2,12 +2,14 @@
 #include "simpletest.h"
 #include <iostream>
 #include <iterator>
+#include <iostream>
 
 
 using namespace AES;
+using namespace std;
 
 
-DEFINE_TEST(EncrptTestExampleOneRound)
+DEFINE_TEST(EncryptTestExampleOneRound)
 {
 
     static uint8_t input[4][4] = {
@@ -28,15 +30,22 @@ DEFINE_TEST(EncrptTestExampleOneRound)
         {0x81, 0x19, 0xd3, 0x26},
         {0xe5, 0x9a, 0x7a, 0x4c}};
 
-    uint8_t output[4][4] = {Encryption::Encrypt_one_round(input, cipher_key)}; 
+    uint8_t output[4][4] = {AES::Encrypt_one_round(input, cipher_key)}; 
 
-    bool equal = std::equal(std::begin(output), std::end(output), std::begin(cipher_text));
+    TEST_EQ(output[0][0],0x04);
+    TEST_EQ(output[0][3],0x28);
+    TEST_EQ(output[2][2],0xd3);
+    TEST_EQ(output[3][3],0x4c);    
 
-    if (equal) {
+    //bool equal = std::equal(std::begin(output), std::end(output), std::begin(cipher_text));
+    
+
+     
+/*   if (equal) {
         std::cout << "Encryption Test SUCCEDDED!" << std::endl;
     } else {
         std::cout << "Encryption Test Failed!" << std::endl;
     }
-
+*/
 }
 
