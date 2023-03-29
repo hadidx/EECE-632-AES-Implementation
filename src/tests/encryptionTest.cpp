@@ -24,28 +24,12 @@ DEFINE_TEST(EncryptTestExampleOneRound)
         {0x15, 0xd2, 0x15, 0x4f},
         {0x16, 0xa6, 0x88, 0x3c}};
 
-    static uint8_t cipher_text [4][4]= {
-        {0x04, 0xe0, 0x48, 0x28},
-        {0x66, 0xcb, 0xf8, 0x06},
-        {0x81, 0x19, 0xd3, 0x26},
-        {0xe5, 0x9a, 0x7a, 0x4c}};
 
-    uint8_t output[4][4] = {AES::Encrypt_one_round(input, cipher_key)}; 
+    Encrypt_one_round(input, cipher_key);
+    TEST_EQ(input[1][0],0x66);
+    TEST_EQ(input[0][3],0x28);
+    TEST_EQ(input[2][2],0xd3);
+    TEST_EQ(input[3][3],0x4c);    
 
-    TEST_EQ(output[0][0],0x04);
-    TEST_EQ(output[0][3],0x28);
-    TEST_EQ(output[2][2],0xd3);
-    TEST_EQ(output[3][3],0x4c);    
-
-    //bool equal = std::equal(std::begin(output), std::end(output), std::begin(cipher_text));
-    
-
-     
-/*   if (equal) {
-        std::cout << "Encryption Test SUCCEDDED!" << std::endl;
-    } else {
-        std::cout << "Encryption Test Failed!" << std::endl;
-    }
-*/
 }
 

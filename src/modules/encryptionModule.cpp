@@ -1,10 +1,37 @@
 #include "encryptionModule.h" 
 #include <iostream> 
+#include "Helpers.h"
 
 
 using namespace std;
 
 using namespace AES;
+
+
+uint8_t AES::galoisMul(uint8_t a, uint8_t b)
+{
+
+    uint8_t p = 0;
+
+    for (int i = 0; i < 8; i++)
+    {
+        if (b & 0x01) // if LSB is active (equivalent to a '1' in the polynomial of g2)
+        {
+            p ^= a; // p += g1 in GF(2^8)
+        }
+
+        bool hiBit = (a & 0x80); // g1 >= 128 = 0100 0000
+        a <<= 1;                 // rotate g1 left (multiply by x in GF(2^8))
+        if (hiBit)
+        {
+            // must reduce
+            a ^= 0x1B; // g1 -= 00011011 == mod(x^8 + x^4 + x^3 + x + 1) = AES irreducible
+        }
+        b >>= 1; // rotate g2 right (divide by x in GF(2^8))
+    }
+
+    return p;
+}
 
 void AES::AddRoundKey(uint8_t state[4][4], const uint8_t roundKey[4][4])
 {
@@ -16,6 +43,7 @@ void AES::AddRoundKey(uint8_t state[4][4], const uint8_t roundKey[4][4])
         }
     }
 }
+
 
 void AES::SubBytes(uint8_t state[4][4])
 {
@@ -49,36 +77,35 @@ void AES::ShiftRows(uint8_t state[4][4])
     }
 }
 
+
 void AES::MixColumns(uint8_t state[4][4])
 {
-    for (uint8_t i = 0; i < 4; i++)
+    uint8_t out[4][4];
+
+    for (int r = 0; r < 4; r++)
     {
-
-        uint8_t tmp[4];
-        uint8_t multi[4];
-        for (uint8_t j = 0; j < 4; j++)
+        for (int c = 0; c < 4; c++)
         {
-            tmp[j] = state[i][j];
-            uint8_t h = (unsigned char)((signed char)state[i][j] >> 7);
-            multi[j] = state[i][j] << 1;
-            multi[j] ^= 0x1B & h;
+            out[r][c] = 0x00;
+            // dot product of row r of the mixColMat and the col c of the state
+            for (int i = 0; i < 4; i++)
+            {
+                out[r][c] ^= AES::galoisMul(CommonVariables::column_matrix[r][i], state[i][c]);
+            }
         }
-
-        state[i][0] = multi[0] ^ tmp[3] ^ tmp[2] ^ multi[1] ^ tmp[1];
-        state[i][1] = multi[1] ^ tmp[0] ^ tmp[3] ^ multi[2] ^ tmp[2];
-        state[i][2] = multi[2] ^ tmp[1] ^ tmp[0] ^ multi[3] ^ tmp[3];
-        state[i][3] = multi[3] ^ tmp[2] ^ tmp[1] ^ multi[0] ^ tmp[0];
     }
+
+    // copy memory to the state
+    memcpy(state, out, 4 * 4 * sizeof(unsigned char));
 }
 
-uint8_t AES::Encrypt_one_round(uint8_t state[4][4], uint8_t cipher_key[4][4])
+ void AES::Encrypt_one_round(uint8_t state[4][4], uint8_t cipher_key[4][4])
 {
     AddRoundKey (state, cipher_key);
     SubBytes(state);
     ShiftRows(state);
     MixColumns(state);
 
-    return state[4][4];
 }
 
     
