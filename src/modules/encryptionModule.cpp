@@ -1,12 +1,10 @@
-#include "encryptionModule.h" 
-#include <iostream> 
+#include "encryptionModule.h"
+#include <iostream>
 #include "Helpers.h"
-
 
 using namespace std;
 
 using namespace AES;
-
 
 uint8_t AES::galoisMul(uint8_t a, uint8_t b)
 {
@@ -44,7 +42,6 @@ void AES::AddRoundKey(uint8_t state[4][4], const uint8_t roundKey[4][4])
     }
 }
 
-
 void AES::SubBytes(uint8_t state[4][4])
 {
     for (uint8_t i = 0; i < 4; i++)
@@ -62,7 +59,7 @@ void AES::ShiftRows(uint8_t state[4][4])
     {
         if (i > 0)
         {
-            uint8_t row [4];
+            uint8_t row[4];
             for (uint8_t j = 0; j < 4; j++)
             {
                 row[j] = state[i][j];
@@ -70,13 +67,11 @@ void AES::ShiftRows(uint8_t state[4][4])
 
             for (uint8_t j = 0; j < 4; j++)
             {
-                state[i][j] = row[(i + j) % 4]; 
-
+                state[i][j] = row[(i + j) % 4];
             }
         }
     }
 }
-
 
 void AES::MixColumns(uint8_t state[4][4])
 {
@@ -99,15 +94,10 @@ void AES::MixColumns(uint8_t state[4][4])
     memcpy(state, out, 4 * 4 * sizeof(unsigned char));
 }
 
- void AES::Encrypt_one_round(uint8_t state[4][4], uint8_t cipher_key[4][4])
+void AES::Encrypt_one_round(uint8_t state[4][4], uint8_t cipher_key[4][4])
 {
-    AddRoundKey (state, cipher_key);
+    AddRoundKey(state, cipher_key);
     SubBytes(state);
     ShiftRows(state);
     MixColumns(state);
-
 }
-
-    
-
-
