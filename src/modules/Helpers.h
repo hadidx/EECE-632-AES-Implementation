@@ -24,6 +24,7 @@ namespace AES
     {
         static cbyte S_BOX[256];
         static cbyte column_matrix[4][4];
+        static cbyte Inv_column_matrix[4][4];
         static cbyte RCON[10];
         static AESMode AES128;
         static AESMode AES192;

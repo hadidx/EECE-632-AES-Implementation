@@ -1,5 +1,7 @@
 #include "decryptionModule.h"
 #include <iostream>
+#include "encryptionModule.h"
+#include "Helpers.h"
 
 using namespace std;
 
@@ -24,42 +26,7 @@ constexpr static uint8_t Inv_S_BOX[256] =
         0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5, 0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61,
         0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d};
 
-constexpr static uint8_t Inv_mixColMat[4][4] = {
-            {0x0E, 0x0B, 0x0D, 0x09},
-            {0x09, 0x0E, 0x0B, 0x0D},
-            {0x0D, 0x09, 0x0E, 0x0B},
-            {0x0B, 0x0D, 0x09, 0x0E}};
 
-// uint8_t wasd(uint8_t a)
-// {
-//     uint8_t h = (unsigned char)((signed char)a >> 7);
-//     return ((a << 1) ^ 0x1b & h);
-// }
-
-uint8_t galoisMul(uint8_t a, uint8_t b)
-{
-
-    uint8_t p = 0;
-
-    for (int i = 0; i < 8; i++)
-    {
-        if (b & 0x01) // if LSB is active (equivalent to a '1' in the polynomial of g2)
-        {
-            p ^= a; // p += g1 in GF(2^8)
-        }
-
-        bool hiBit = (a & 0x80); // g1 >= 128 = 0100 0000
-        a <<= 1;                 // rotate g1 left (multiply by x in GF(2^8))
-        if (hiBit)
-        {
-            // must reduce
-            a ^= 0x1B; // g1 -= 00011011 == mod(x^8 + x^4 + x^3 + x + 1) = AES irreducible
-        }
-        b >>= 1; // rotate g2 right (divide by x in GF(2^8))
-    }
-
-    return p;
-}
 
 void AES::InvAddRoundKey(uint8_t state[4][4], const uint8_t roundKey[4][4])
 {
@@ -83,43 +50,65 @@ void AES::InvSubBytes(uint8_t state[4][4])
     }
 }
 
-// void AES::InvShiftRows(uint8_t state[4][4])
-// {
-//     // rotate each row according to its position
-//     for (int i = 0; i < 4; i++)
-//     {
-//         rightRotate(state[i], i, 4);
-//     }
-// }
 
 void AES::InvShiftRows(uint8_t state[4][4])
 {
-    uint8_t b[4][4];
     for (uint8_t i = 0; i < 4; i++)
     {
-        for (uint8_t j = 0; j < 4; j++)
+        if (i > 0)
         {
-            b[j][i] = state[(((j - i) % 4) + 4) % 4][i];
+            uint8_t row [4];
+            for (uint8_t j = 0; j < 4; j++)
+            {
+                row[j] = state[i][j];
+            }
+
+            for (int8_t j = 3; j >= 0; j--)
+            {
+                state[i][j] = row[(j + (4- i)) % 4];
+            }
         }
     }
-    memcpy(state, b, 4 * 4 * sizeof(uint8_t));
 }
 
-void AES::InvMixColumns(uint8_t state[4][4])
+void AES::InvMixColumns(uint8_t state[4][4]) {
+
+    uint8_t temp[4][4];
+    for (int c = 0; c < 4; c++) {
+        temp[0][c] = AES::galoisMul(CommonVariables::Inv_column_matrix[0][0], state[0][c])
+                   ^ AES::galoisMul(CommonVariables::Inv_column_matrix[0][1], state[1][c])
+                   ^ AES::galoisMul(CommonVariables::Inv_column_matrix[0][2], state[2][c])
+                   ^ AES::galoisMul(CommonVariables::Inv_column_matrix[0][3], state[3][c]);
+        temp[1][c] = AES::galoisMul(CommonVariables::Inv_column_matrix[1][0], state[0][c])
+                   ^ AES::galoisMul(CommonVariables::Inv_column_matrix[1][1], state[1][c])
+                   ^ AES::galoisMul(CommonVariables::Inv_column_matrix[1][2], state[2][c])
+                   ^ AES::galoisMul(CommonVariables::Inv_column_matrix[1][3], state[3][c]);
+        temp[2][c] = AES::galoisMul(CommonVariables::Inv_column_matrix[2][0], state[0][c])
+                   ^ AES::galoisMul(CommonVariables::Inv_column_matrix[2][1], state[1][c])
+                   ^ AES::galoisMul(CommonVariables::Inv_column_matrix[2][2], state[2][c])
+                   ^ AES::galoisMul(CommonVariables::Inv_column_matrix[2][3], state[3][c]);
+        temp[3][c] = AES::galoisMul(CommonVariables::Inv_column_matrix[3][0], state[0][c])
+                   ^ AES::galoisMul(CommonVariables::Inv_column_matrix[3][1], state[1][c])
+                   ^ AES::galoisMul(CommonVariables::Inv_column_matrix[3][2], state[2][c])
+                   ^ AES::galoisMul(CommonVariables::Inv_column_matrix[3][3], state[3][c]);
+    }
+    memcpy(state, temp, 16);
+}
+
+
+/*void AES::InvMixColumns(uint8_t state[4][4])
 {
     uint8_t out[4][4];
 
-    // matrix multiplication in GF(2^8)
-    // * => galoisMul, + => ^
     for (int r = 0; r < 4; r++)
     {
         for (int c = 0; c < 4; c++)
         {
             out[r][c] = 0x00;
-            // dot product between the row r of the invMixColMat and col c of the state
+            // dot product of row r of the mixColMat and the col c of the state
             for (int i = 0; i < 4; i++)
             {
-                out[r][c] ^= galoisMul(Inv_mixColMat[r][i], state[i][c]);
+                out[r][c] ^= AES::galoisMul(CommonVariables::Inv_column_matrix[r][i], state[i][c]);
             }
         }
     }
@@ -127,32 +116,7 @@ void AES::InvMixColumns(uint8_t state[4][4])
     // copy memory to the state
     memcpy(state, out, 4 * 4 * sizeof(unsigned char));
 }
-
-// void AES::InvMixColumns(uint8_t a[4][4])
-// {
-//     uint8_t x[4] = {0x9f, 0xdc, 0x58, 0x9d};
-//     uint8_t y[4];
-//     uint8_t a9[4];
-//     uint8_t a11[4];
-//     uint8_t a13[4];
-//     uint8_t a14[4];
-//     for (int i = 0; i < 4; i++)
-//     {
-//         uint8_t tmp[4][4];
-
-//         for (int j = 0; j < 4; j++)
-//         {
-//             tmp[0][j] = wasd(wasd(wasd(a[i][(0 + j) % 4]) ^ a[i][(0 + j) % 4]) ^ a[i][(0 + j) % 4]);
-//             tmp[1][j] = wasd(wasd(wasd(a[i][(1 + j) % 4])) ^ a[i][(1 + j) % 4]) ^ a[i][(1 + j) % 4];
-//             tmp[2][j] = wasd(wasd(wasd(a[i][(2 + j) % 4]) ^ a[i][(2 + j) % 4])) ^ a[i][(2 + j) % 4];
-//             tmp[3][j] = wasd(wasd(wasd(a[i][(3 + j) % 4]))) ^ a[i][(3 + j) % 4];
-//         }
-//         for (int k = 0; k < 4; k++)
-//         {
-//             a[i][k] = tmp[(((0 - k) % 4) + 4) % 4][k] ^ tmp[(((1 - k) % 4) + 4) % 4][k] ^ tmp[(((2 - k) % 4) + 4) % 4][k] ^ tmp[(((3 - k) % 4) + 4) % 4][k];
-//         }
-//     }
-// }
+*/
 
 void AES::Decrypt_first_round(uint8_t state[4][4], uint8_t cipher_key[4][4])
 {
@@ -161,13 +125,12 @@ void AES::Decrypt_first_round(uint8_t state[4][4], uint8_t cipher_key[4][4])
 
 }
 
-// void AES::Decrypt_one_round(uint8_t state[4][4], uint8_t cipher_key[4][4])
-// {
+void AES::Decrypt_one_round(uint8_t state[4][4], uint8_t cipher_key[4][4])
+{
 
-//     InvAddRoundKey(state, cipher_key);
-//     InvMixColumns(state);
-//     InvShiftRows(state);
-//     InvSubBytes(state);
+    InvAddRoundKey(state, cipher_key);
+    InvMixColumns(state);
+    InvShiftRows(state);
+    InvSubBytes(state);
 
-
-// }
+ }
