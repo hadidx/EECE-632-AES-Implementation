@@ -44,6 +44,8 @@ namespace AES
 
     void Encrypt_one_round(uint8_t state[4][4], uint8_t cipher_key[4][4]);
 
+    void Encrypt(uint8_t input[4][4], cbyte key[], uint8_t output[4][4], AESMode mode);
+
 
 };
 
