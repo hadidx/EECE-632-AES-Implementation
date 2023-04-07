@@ -2,6 +2,7 @@
 #include <iostream>
 #include "encryptionModule.h"
 #include "Helpers.h"
+#include "KeyExpansion.h"
 
 using namespace std;
 
@@ -96,28 +97,6 @@ void AES::InvMixColumns(uint8_t state[4][4]) {
 }
 
 
-/*void AES::InvMixColumns(uint8_t state[4][4])
-{
-    uint8_t out[4][4];
-
-    for (int r = 0; r < 4; r++)
-    {
-        for (int c = 0; c < 4; c++)
-        {
-            out[r][c] = 0x00;
-            // dot product of row r of the mixColMat and the col c of the state
-            for (int i = 0; i < 4; i++)
-            {
-                out[r][c] ^= AES::galoisMul(CommonVariables::Inv_column_matrix[r][i], state[i][c]);
-            }
-        }
-    }
-
-    // copy memory to the state
-    memcpy(state, out, 4 * 4 * sizeof(unsigned char));
-}
-*/
-
 void AES::Decrypt_first_round(uint8_t state[4][4], uint8_t cipher_key[4][4])
 {
 
@@ -127,10 +106,62 @@ void AES::Decrypt_first_round(uint8_t state[4][4], uint8_t cipher_key[4][4])
 
 void AES::Decrypt_one_round(uint8_t state[4][4], uint8_t cipher_key[4][4])
 {
-
-    InvAddRoundKey(state, cipher_key);
-    InvMixColumns(state);
-    InvShiftRows(state);
     InvSubBytes(state);
+    InvShiftRows(state);
+    AddRoundKey(state,cipher_key);
+    InvMixColumns(state);
 
  }
+
+void AES::Decrypt(uint8_t state[4][4], cbyte key[], uint8_t output[4][4], AESMode mode) 
+    {
+
+        int8_t numRounds = 0;
+        numRounds = mode.Nr;
+
+        word* expandedKey = initializeExpandedKey(mode.Nr);
+        AES::keyExpansion(key, expandedKey, mode);
+        int8_t expandedKeyLength = (mode.Nr+1)*4;
+ 
+
+        uint8_t roundKey [4][4]=
+        {   {expandedKey[expandedKeyLength - 4][0], expandedKey[expandedKeyLength - 3][0], expandedKey[expandedKeyLength - 2][0], expandedKey[expandedKeyLength - 1][0]},
+            {expandedKey[expandedKeyLength - 4][1], expandedKey[expandedKeyLength - 3][1], expandedKey[expandedKeyLength - 2][1], expandedKey[expandedKeyLength - 1][1]},
+            {expandedKey[expandedKeyLength - 4][2], expandedKey[expandedKeyLength - 3][2], expandedKey[expandedKeyLength - 2][2], expandedKey[expandedKeyLength - 1][2]},
+            {expandedKey[expandedKeyLength - 4][3], expandedKey[expandedKeyLength - 3][3], expandedKey[expandedKeyLength - 2][3], expandedKey[expandedKeyLength - 1][3]} };
+
+
+        AES::AddRoundKey(state, roundKey);
+
+
+        for (int8_t roundCounter = numRounds -1 ; roundCounter >= 0; roundCounter--)
+        {
+            for (uint8_t i = 0; i < 4; i++)
+            {
+                for (uint8_t j = 0; j < 4; j++)
+                {
+                    
+                    roundKey[i][j] = expandedKey[roundCounter*4 + j][i];
+                }
+            }
+
+            AES::InvShiftRows(state);
+            AES::InvSubBytes(state);
+            AES::AddRoundKey(state, roundKey);
+
+            if (roundCounter != 0)
+            {
+                // Apply MixColumns in all rounds but the last
+                AES::InvMixColumns(state);
+            }
+        }
+
+        // Copying final state to output
+        for (uint8_t i = 0; i < 4; i++)
+        {
+            for (uint8_t j = 0; j < 4; j++)
+            {
+                output[i][j] = state[i][j];
+            }
+        }
+    }
