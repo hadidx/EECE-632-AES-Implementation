@@ -3,6 +3,12 @@
 CXX = g++
 # use flags to generate dependency files
 CXXFLAGS = -std=c++14 -MMD -MP
+
+
+DLLS = 
+ifeq ($(OS),Windows_NT)
+	DLLS += /c/Windows/System32/bcrypt.dll
+endif
 # object file generation path
 tmpDir = .objs
 # modules path
@@ -34,19 +40,19 @@ all: test_main main
 
 # Linking
 main: $(names)
->$(CXX) $(CXXFLAGS) -o main $^
+>$(CXX) $(CXXFLAGS) -o main $(DLLS) $^
 
 test_main: $(testNames)
->$(CXX) $(CXXFLAGS) -o test_main $^ -I "$(testFrameworkPath)" -I "$(testPath)" -I "$(modPath)"
+>$(CXX) $(CXXFLAGS) -o test_main $(DLLS) $^ -I "$(testFrameworkPath)" -I "$(testPath)" -I "$(modPath) -fsanitize=undefined"
 # Rule for main file
 $(tmpDir)/main.o: main.cpp
 >@mkdir -p $(tmpDir)
->$(CXX) $(CXXFLAGS) -c main.cpp -o $@ -I "$(modPath)"
+>$(CXX) $(CXXFLAGS) -c main.cpp $(DLLS) -o $@ -I "$(modPath)"
 
 # Rule for test_main file
 $(tmpDir)/test_main.o: test_main.cpp
 >@mkdir -p $(tmpDir)
->$(CXX) $(CXXFLAGS) -c test_main.cpp -o $@ -I "$(modPath)" -I "$(testFrameworkPath)" -I "$(testPath)"
+>$(CXX) $(CXXFLAGS) -c test_main.cpp $(DLLS) -o $@ -I "$(modPath)" -I "$(testFrameworkPath)" -I "$(testPath) -fsanitize=undefined"
 
 # rules for module files
 $(tmpDir)/%.o: $(modPath)/%.cpp
@@ -55,7 +61,7 @@ $(tmpDir)/%.o: $(modPath)/%.cpp
 
 $(tmpDir)/%.o: $(testPath)/%.cpp
 >mkdir -p $(dir $@)
->$(CXX) $(CXXFLAGS) -c $< -o $@ -I "$(modPath)" -I "$(testFrameworkPath)" -I "$(testPath)"
+>$(CXX) $(CXXFLAGS) -c $< -o $@ -I "$(modPath)" -I "$(testFrameworkPath)" -I "$(testPath) -fsanitize=undefined"
 
 # rules for testFramework files
 $(tmpDir)/%.o: $(testFrameworkPath)/%.cpp

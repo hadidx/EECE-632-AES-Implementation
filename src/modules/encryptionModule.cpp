@@ -49,7 +49,7 @@ void AES::SubBytes(uint8_t state[4][4])
     {
         for (uint8_t j = 0; j < 4; j++)
         {
-            state[i][j] = AES::S_BOX[state[i][j]];
+            state[i][j] = AES::CommonVariables::S_BOX[state[i][j]];
         }
     }
 }
@@ -83,7 +83,7 @@ void AES::MixColumns(uint8_t state[4][4])
         for (int c = 0; c < 4; c++)
         {
             out[r][c] = 0x00;
-            // dot product of row r of the mixColMat and the col c of the state
+            // dot product of row r of the column_matrix and the col c of the state
             for (int i = 0; i < 4; i++)
             {
                 out[r][c] ^= AES::galoisMul(CommonVariables::column_matrix[r][i], state[i][c]);
@@ -103,8 +103,12 @@ void AES::Encrypt_one_round(uint8_t state[4][4], uint8_t cipher_key[4][4])
     MixColumns(state);
 }
 
-void AES::Encrypt(uint8_t state[4][4], cbyte key[], uint8_t output[4][4], AESMode mode) 
+void AES::Encrypt(uint8_t input[16], cbyte key[], uint8_t output[4][4], AESMode mode) 
     {
+
+        cbyte state[4][4];
+
+        AES::copyToState(input, state);
 
         int8_t numRounds = 0;
         uint8_t expandedKeyLength = 0;

@@ -1,3 +1,7 @@
+#ifndef DECRYPTION_H
+#define DECRYPTION_H
+
+
 #include <stdint.h>
 #include <cstring>
 #include "Helpers.h"
@@ -19,7 +23,9 @@ namespace AES
 
         void Decrypt_one_round(uint8_t state[4][4], uint8_t cipher_key[4][4]);
 
-        void Decrypt(uint8_t state[4][4], cbyte key[], uint8_t output[4][4], AESMode mode);
+        void Decrypt(uint8_t input[16], cbyte key[], uint8_t output[4][4], AESMode mode);
     
 
 }
+
+#endif

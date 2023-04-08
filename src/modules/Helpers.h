@@ -22,14 +22,17 @@ namespace AES
     
     struct CommonVariables
     {
-        static cbyte S_BOX[256];
-        static cbyte column_matrix[4][4];
-        static cbyte Inv_column_matrix[4][4];
-        static cbyte RCON[10];
-        static AESMode AES128;
-        static AESMode AES192;
-        static AESMode AES256;
+        const static cbyte S_BOX[256];
+        const static cbyte Inv_S_BOX[256];
+        const static cbyte column_matrix[4][4];
+        const static cbyte Inv_column_matrix[4][4];
+        const static cbyte RCON[10];
+        const static AESMode AES128;
+        const static AESMode AES192;
+        const static AESMode AES256;
     };
+
+    void copyToState(cbyte input[16], cbyte state[4][4]);
     
 }
 #endif
