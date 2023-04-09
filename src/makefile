@@ -8,6 +8,7 @@ CXXFLAGS = -std=c++14 -MMD -MP
 DLLS = 
 ifeq ($(OS),Windows_NT)
 	DLLS += /c/Windows/System32/bcrypt.dll
+	DLLS += /c/Windows/System32/kernel32.dll
 endif
 # object file generation path
 tmpDir = .objs

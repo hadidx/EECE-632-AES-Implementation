@@ -42,6 +42,39 @@ word* AES::initializeExpandedKey(int Nr)
     return expandedKey;
 }
 
+
+void AES::lockExpandedKeyMemory(word* expandedKey, AESMode mode)
+{
+    lockMemory(expandedKey, 4*(mode.Nr + 1));
+    for (int i = 0; i<4*(mode.Nr + 1); i++)
+    {
+        lockMemory(expandedKey[i], 4);
+    }
+}
+
+void AES::unlockExpandedKeyMemory(word* expandedKey, AESMode mode)
+{
+    unlockMemory(expandedKey, 4*(mode.Nr + 1));
+    for (int i = 0; i<4*(mode.Nr + 1); i++)
+    {
+        unlockMemory(expandedKey[i], 4);
+    }
+}
+
+
+void AES::clearExpandedKeyMem(word* expandedKey, AESMode mode)
+{
+    for (int i = 0; i<4*(mode.Nr + 1); i++)
+    {
+        clearMem(expandedKey[i], 4);
+        delete [] expandedKey[i];
+        expandedKey[i] = NULL;
+    }
+    clearMem(expandedKey, 4*(mode.Nr + 1));
+    delete [] expandedKey;
+    expandedKey = NULL;
+}
+
 word AES::initiallizeWord(cbyte a0, cbyte a1, cbyte a2, cbyte a3)
 {
     declareWord(w);

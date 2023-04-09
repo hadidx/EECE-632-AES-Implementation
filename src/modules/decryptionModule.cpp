@@ -103,6 +103,9 @@ void AES::Decrypt(uint8_t input[16], cbyte key[], uint8_t output[4][4], AESMode 
         numRounds = mode.Nr;
 
         word* expandedKey = initializeExpandedKey(mode.Nr);
+
+        AES::lockExpandedKeyMemory(expandedKey, mode);
+
         AES::keyExpansion(key, expandedKey, mode);
         int8_t expandedKeyLength = (mode.Nr+1)*4;
  
@@ -139,6 +142,8 @@ void AES::Decrypt(uint8_t input[16], cbyte key[], uint8_t output[4][4], AESMode 
             }
         }
 
+        AES::unlockExpandedKeyMemory(expandedKey, mode);
+        AES::clearExpandedKeyMem(expandedKey, mode);
         // Copying final state to output
         for (uint8_t i = 0; i < 4; i++)
         {

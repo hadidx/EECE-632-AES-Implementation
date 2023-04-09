@@ -116,6 +116,8 @@ void AES::Encrypt(uint8_t input[16], cbyte key[], uint8_t output[4][4], AESMode 
 
         word* expandedKey = initializeExpandedKey(mode.Nr);
 
+        AES::lockExpandedKeyMemory(expandedKey, mode);
+
         AES::keyExpansion(key, expandedKey, mode);
         //expanded key is of length nk, expandedkey[0], expandedkey[1],... expandedkey[5] if nk = 6
         // expandedkey[0] is a word of length 4 w[0], w[1], w[2], w[3]
@@ -152,6 +154,8 @@ void AES::Encrypt(uint8_t input[16], cbyte key[], uint8_t output[4][4], AESMode 
         }
 
         // Copying final state to output
+        AES::unlockExpandedKeyMemory(expandedKey, mode);
+        AES::clearExpandedKeyMem(expandedKey, mode);
         for (uint8_t i = 0; i < 4; i++)
         {
             for (uint8_t j = 0; j < 4; j++)

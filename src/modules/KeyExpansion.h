@@ -17,6 +17,12 @@ namespace AES
 
     word* initializeExpandedKey(int Nr);
 
+    void lockExpandedKeyMemory(word* expandedKey, AESMode mode);
+
+    void unlockExpandedKeyMemory(word* expandedKey, AESMode mode);
+
+    void clearExpandedKeyMem(word* expandedKey, AESMode mode);
+
     void keyExpansion (cbyte* key, word* expandedKey, AESMode mode);
 
 }

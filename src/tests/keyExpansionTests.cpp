@@ -47,6 +47,8 @@ DEFINE_TEST(AES128Bit)
     TEST_EQ(expandeKey[43][1],0x63);
     TEST_EQ(expandeKey[43][2],0x0c);
     TEST_EQ(expandeKey[43][3],0xa6);
+    unlockExpandedKeyMemory(expandeKey, mode);
+    clearExpandedKeyMem(expandeKey, mode);
 }
 
 DEFINE_TEST(AES192Bit)
@@ -61,6 +63,8 @@ DEFINE_TEST(AES192Bit)
     TEST_EQ(expandeKey[51][1],0x00);
     TEST_EQ(expandeKey[51][2],0x22);
     TEST_EQ(expandeKey[51][3],0x02);
+    unlockExpandedKeyMemory(expandeKey, mode);
+    clearExpandedKeyMem(expandeKey, mode);
 }
 
 
@@ -76,4 +80,6 @@ DEFINE_TEST(AES256Bit)
     TEST_EQ(expandeKey[59][1],0x6c);
     TEST_EQ(expandeKey[59][2],0x63);
     TEST_EQ(expandeKey[59][3],0x1e);
+    unlockExpandedKeyMemory(expandeKey, mode);
+    clearExpandedKeyMem(expandeKey, mode);
 }

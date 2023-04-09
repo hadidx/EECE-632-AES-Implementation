@@ -33,6 +33,25 @@ namespace AES
     };
 
     void copyToState(cbyte input[16], cbyte state[4][4]);
+
+    void copyFromState(cbyte output[16], cbyte state[4][4]);
+
+    int lockMemory(void* ptr, int size);
+
+    int unlockMemory(void* ptr, int size);
+
+
+    void copyMem(cbyte* dest, cbyte* src, int size);
+
+    template <typename T> void clearMem(T* ptr, int size)
+    {
+        for (int i = 0; i< size; i++)
+        {
+            *(ptr + i) = 0x00;
+        }
+    }
+
+    void xorArrays(cbyte* a, cbyte* b, cbyte* output, int size);
     
 }
 #endif
