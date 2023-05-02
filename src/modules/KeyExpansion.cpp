@@ -19,10 +19,10 @@ void AES::RotWord(word w)
 
 void AES::SubWord(word w)
 {
-    w[0] = CommonVariables::S_BOX[w[0]];
-    w[1] = CommonVariables::S_BOX[w[1]];
-    w[2] = CommonVariables::S_BOX[w[2]];
-    w[3] = CommonVariables::S_BOX[w[3]];
+    w[0] = AES::sBoxInterpolation(w[0]);
+    w[1] = AES::sBoxInterpolation(w[1]);
+    w[2] = AES::sBoxInterpolation(w[2]);
+    w[3] = AES::sBoxInterpolation(w[3]);
 }
 
 void AES::xorRcon(word w, cbyte i)

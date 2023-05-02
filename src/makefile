@@ -2,7 +2,7 @@
 # compiler settings
 CXX = g++
 # use flags to generate dependency files
-CXXFLAGS = -std=c++14 -MMD -MP
+CXXFLAGS = -std=c++14 -MMD -MP -O0
 
 
 DLLS = 

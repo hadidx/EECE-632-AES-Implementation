@@ -52,6 +52,12 @@ namespace AES
     }
 
     void xorArrays(cbyte* a, cbyte* b, cbyte* output, int size);
+
+    cbyte sBoxLookup(int i); //bad do not use
+
+    cbyte sBoxInterpolation(int i);
+
+    cbyte sBoxInvInterpolation(int i);
     
 }
 #endif

@@ -25,7 +25,7 @@ void AES::InvSubBytes(uint8_t state[4][4])
     {
         for (uint8_t j = 0; j < 4; j++)
         {
-            state[i][j] = CommonVariables::Inv_S_BOX[state[i][j]];
+            state[i][j] = AES::sBoxInvInterpolation(state[i][j]);
         }
     }
 }
