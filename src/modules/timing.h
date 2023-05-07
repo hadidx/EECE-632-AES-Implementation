@@ -8,7 +8,9 @@
 namespace AES{
     uint64_t rdtsc();
 
-    void timeAES(cbyte key[16], AESMode mode, int targetByte, int nTotalSamples, string outputFileName);
+    void timeAES(cbyte key[16], AESMode mode, int targetByte, long long nTotalSamples, string outputFileName);
+
+    void timeGalios(long long nTotalSamples, string outputFileName);
 }
 
 #endif

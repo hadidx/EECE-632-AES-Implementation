@@ -9,6 +9,7 @@ using namespace AES;
 
 AES::CBC::CBC(cbyte* key, AESMode mode)
 {
+    
     this->mode = mode;
     this->keyLen = 4*this->mode.Nk;
     this->key = new cbyte[this->keyLen];
@@ -18,7 +19,7 @@ AES::CBC::CBC(cbyte* key, AESMode mode)
         this->key[i] = key[i];
     }
     
-    lockMemory(this->key,this->keyLen);
+    this->keyLocked = lockMemory(this->key,this->keyLen);
 }
 
 AES::CBC::~CBC()
@@ -49,8 +50,15 @@ void AES::CBC::pad(cbyte* message, int size)
     this->nBlocks = paddedSize/16;
     this->nPadding = this->paddedSize - size;
 
-    this->paddedMessage = new cbyte[this->paddedSize];
-    lockMemory(this->paddedMessage, this->paddedSize);
+    try{
+        this->paddedMessage = new cbyte[this->paddedSize];
+    }
+    catch(...)
+    {
+        this->paddedMessage = NULL;
+    }
+    
+    this->paddedMessageLocked = lockMemory(this->paddedMessage, this->paddedSize);
 
     int i = 0;
     while (i<size)
@@ -67,31 +75,36 @@ void AES::CBC::pad(cbyte* message, int size)
     
 }
 
-void AES::CBC::createMessageBlocks()
+// void AES::CBC::createMessageBlocks()
+// {
+//     this->paddedMessageBlocks = new cbyte*[this->nBlocks];
+
+//     lockMemory(this->paddedMessageBlocks, this->nBlocks);
+
+//     int j = 0;
+//     for(int i = 0; i<nBlocks; i += 16)
+//     {
+//         this->paddedMessageBlocks[i] = new cbyte[16];
+//         AES::copyMem(this->paddedMessageBlocks[i], this->paddedMessage + j, 16);
+//         lockMemory(this->paddedMessageBlocks[i], 16);
+//     }
+
+//     unlockMemory(this->paddedMessage, this->paddedSize);
+//     clearMem<cbyte>(this->paddedMessage, this->paddedSize);
+//     delete [] this->paddedMessage;
+//     this->paddedMessage = NULL;
+// }
+
+
+unsigned int AES::CBC::generateIV()
 {
-    this->paddedMessageBlocks = new cbyte*[this->nBlocks];
-
-    lockMemory(this->paddedMessageBlocks, this->nBlocks);
-
-    int j = 0;
-    for(int i = 0; i<nBlocks; i += 16)
-    {
-        this->paddedMessageBlocks[i] = new cbyte[16];
-        AES::copyMem(this->paddedMessageBlocks[i], this->paddedMessage + j, 16);
-        lockMemory(this->paddedMessageBlocks[i], 16);
+    try{
+        this->IV = new cbyte[16];
     }
-
-    unlockMemory(this->paddedMessage, this->paddedSize);
-    clearMem<cbyte>(this->paddedMessage, this->paddedSize);
-    delete [] this->paddedMessage;
-    this->paddedMessage = NULL;
-}
-
-
-void AES::CBC::generateIV()
-{
-    this->IV = new cbyte[16];
-    genCryptoRN(16, this->IV);
+    catch(...){
+        return 0;
+    }
+    return genCryptoRN(16, this->IV);
 }
 
 void AES::CBC::overwriteIV(cbyte* IV)
@@ -121,9 +134,38 @@ cbyte* AES::CBC::encrypt(cbyte* message, int size, int& cipherSize)
     this->pad(message, size);
     cipherSize = this->paddedSize + 16;
     cout<<this->mode.Nk;
+
+    bool validIV = true;
     if(!this->IVOverwritten)
     {
-        this->generateIV();
+        validIV = this->generateIV();
+    }
+
+    if (!validIV||!this->paddedMessageLocked||!this->keyLocked)
+    {
+        unlockMemory(this->paddedMessage, this->paddedSize);
+        clearMem<cbyte>(this->paddedMessage, this->paddedSize);
+        delete [] this->paddedMessage;
+        this->paddedMessage = NULL;
+
+        clearMem<cbyte>(this->IV, 16);
+        delete [] this->IV;
+        this->IV = NULL;
+
+        this->IVOverwritten = false;
+    
+        return NULL;
+    }
+
+    if(this->paddedMessage==NULL)
+    {
+        clearMem<cbyte>(this->IV, 16);
+        delete [] this->IV;
+        this->IV = NULL;
+
+        this->IVOverwritten = false;
+    
+        return NULL;
     }
 
     cbyte* cipher = new cbyte[cipherSize];
@@ -144,8 +186,6 @@ cbyte* AES::CBC::encrypt(cbyte* message, int size, int& cipherSize)
         c = cipherBlock;
         
     }
-
-    cout<<cipherSize;
 
     unlockMemory(this->paddedMessage, this->paddedSize);
     clearMem<cbyte>(this->paddedMessage, this->paddedSize);
@@ -169,8 +209,42 @@ cbyte* AES::CBC::decrypt(cbyte* cipher, int size, int& messageSize)
     overwriteIV(cipher);
     this->paddedSize = size;
 
-    this->paddedMessage = new cbyte[this->paddedSize];
-    lockMemory(this->paddedMessage, this->paddedSize);
+    try{
+
+        this->paddedMessage = new cbyte[this->paddedSize];
+    }
+    catch(...)
+    {
+        this->paddedMessage = NULL;
+    }
+    this->paddedMessageLocked = lockMemory(this->paddedMessage, this->paddedSize);
+
+    if (!this->paddedMessageLocked||!this->keyLocked||this->paddedMessage==NULL)
+    {
+        unlockMemory(this->paddedMessage, this->paddedSize);
+        clearMem<cbyte>(this->paddedMessage, this->paddedSize);
+        delete [] this->paddedMessage;
+        this->paddedMessage = NULL;
+
+        clearMem<cbyte>(this->IV, 16);
+        delete [] this->IV;
+        this->IV = NULL;
+
+        this->IVOverwritten = false;
+    
+        return NULL;
+    }
+
+    if(this->paddedMessage==NULL)
+    {
+        clearMem<cbyte>(this->IV, 16);
+        delete [] this->IV;
+        this->IV = NULL;
+
+        this->IVOverwritten = false;
+    
+        return NULL;
+    }
 
     cbyte* cPrev = this->IV;
     cbyte* m;

@@ -104,7 +104,20 @@ void AES::Decrypt(uint8_t input[16], cbyte key[], uint8_t output[4][4], AESMode 
 
         word* expandedKey = initializeExpandedKey(mode.Nr);
 
+        if (expandedKey == NULL)
+        {
+            return; 
+        }
         AES::lockExpandedKeyMemory(expandedKey, mode);
+
+
+        bool islocked = AES::lockExpandedKeyMemory(expandedKey, mode);
+
+        if(!islocked)
+        {
+            AES::clearExpandedKeyMem(expandedKey, mode);
+            return;
+        }
 
         AES::keyExpansion(key, expandedKey, mode);
         int8_t expandedKeyLength = (mode.Nr+1)*4;

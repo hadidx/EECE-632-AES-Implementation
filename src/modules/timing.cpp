@@ -24,87 +24,144 @@ uint64_t AES::rdtsc(){
 #endif
 
 
-void AES::timeAES(cbyte key[16], AESMode mode, int targetByte, int nTotalSamples, string outputFileName)
+void timedFunction(uint8_t input[16])
 {
-    uint8_t output[4][4];
-    lockMemory(output,16);
-    lockMemory(key,16);
-    int nSamplesPerTargetByteValue = nTotalSamples/256;
+    for(int i = 0; i<16; i++)
+    {
+        AES::sBoxInverseAndAffinity(input[i]);
+    }
+}
 
-    uint64_t* times = new uint64_t[256*nSamplesPerTargetByteValue];
+void AES::timeAES(cbyte key[16], AESMode mode, int targetByte, long long nTotalSamples, string outputFileName)
+{
+    // uint8_t output[4][4];
+    // lockMemory(output,16);
+    // lockMemory(key,16);
+    long long nSamplesPerTargetByteValue = nTotalSamples/256;
 
-    double averageTimesPerByte[256]; 
+    // uint64_t* times = new uint64_t[nSamplesPerTargetByteValue];
 
-    uint8_t** inputs = new uint8_t*[256*nSamplesPerTargetByteValue];
+    double averageTimesPerByte[256];
+    double counts[256];  
+
+    for (int i = 0; i<256; i++)
+    {
+        averageTimesPerByte[i] = 0;
+    }
+
+    for (int i = 0; i<256; i++)
+    {
+        counts[i] = 1;
+    }
 
     std::random_device engine;
-
-    for (int i = 0; i<256; ++i)
+    
+    for (long long i = 0; i<256; ++i)
     {
-        for (int j = 0; j<nSamplesPerTargetByteValue; ++j)
-        {
+
+        // uint8_t** inputs = new uint8_t*[nSamplesPerTargetByteValue];
+        // for(long long j = 0; j<nSamplesPerTargetByteValue; j++)
+        // {
+        //     uint8_t* input = new uint8_t[16];
+        //     for (long long k = 0; k<16; ++k)
+        //     {
+        //         input[k] = engine();
+        //     }
+
+        //     // input[targetByte] = engine();
+        // }
+
+        for (long long j = 0; j<nSamplesPerTargetByteValue; ++j)
+        {   
+
             uint8_t* input = new uint8_t[16];
-            for (int k = 0; k<16; ++k)
+            for (long long k = 0; k<16; ++k)
             {
                 input[k] = engine();
             }
-
-            input[targetByte] = i;
-            lockMemory(input,16);
-            inputs[i*nSamplesPerTargetByteValue+j] = input;
+            // for (long long k = 0; k<16; ++k)
+            // {
+            //     inputs[j][k];
+            // }
+            auto begin = chrono::high_resolution_clock::now();
+                timedFunction(input);
+            auto end = chrono::high_resolution_clock::now();
+            averageTimesPerByte[input[targetByte]] += chrono::duration_cast<chrono::nanoseconds>(end - begin).count();
+            counts[input[targetByte]] += 1;
+            delete input;
         }
+
+        // for(long long j = 0; j<nSamplesPerTargetByteValue; j++)
+        // {
+        //     delete [] inputs[j];
+        // }
+
+        // delete [] inputs;
     }
 
-    
-    
-    for (int i = 0; i<256*nSamplesPerTargetByteValue; ++i)
+    for (long long i = 0; i<256; ++i)
     {
-        uint8_t input[16]; 
-        for (int j=0; j<16; j++)
-        {
-            input[j] = inputs[i][j];
-        }
-        lockMemory(input,16);
-        auto begin = rdtsc();
-        Encrypt(input, key, output, mode);
-        auto end = rdtsc();
-        unlockMemory(input,16);
-
-        times[i] = (double)(end-begin);
-    }
-
-
-    for (int i = 0; i<256; ++i)
-    {
-        for (int j = 0; j<nSamplesPerTargetByteValue; ++j)
-        {
-            averageTimesPerByte[i] += times[i*nSamplesPerTargetByteValue+j];
-        }
-
-
-        averageTimesPerByte[i] = averageTimesPerByte[i]/(double)nSamplesPerTargetByteValue;
+        averageTimesPerByte[i] = averageTimesPerByte[i]/counts[i];
     }
 
 
     ofstream myfile (outputFileName);
 
-    unlockMemory(output,16);
-    unlockMemory(key,16);
-    if (myfile.is_open())
+    for (long i = 0; i<256; ++i)
     {
-        for(int i = 0; i<256; i ++){
-            myfile << averageTimesPerByte[i] << "," ;
-        }
-        myfile.close();
+        myfile << averageTimesPerByte[i] << "," ;
     }
 
-    for (int i = 0; i<256*nSamplesPerTargetByteValue; ++i)
-    {
-        unlockMemory(inputs[i],16);
-        delete [] inputs[i];
-    }
+     myfile.close();
 
-    delete [] inputs;
-    delete times;
     
+}
+
+void AES::timeGalios(long long nTotalSamples, string outputFileName)
+{
+    double averageTimesPerByte[256];
+    double counts[256];  
+
+    for (int i = 0; i<256; i++)
+    {
+        averageTimesPerByte[i] = 0;
+    }
+
+    for (int i = 0; i<256; i++)
+    {
+        counts[i] = 1;
+    }
+
+    std::random_device engine;
+
+
+    for (long long j = 0; j<nTotalSamples; ++j)
+    {   
+
+        uint8_t input1 = engine();
+        uint8_t input2 = engine();
+    
+        auto begin = chrono::high_resolution_clock::now();
+            galoisMulBranched(input1,input2);
+        auto end = chrono::high_resolution_clock::now();
+        averageTimesPerByte[input1] += chrono::duration_cast<chrono::nanoseconds>(end - begin).count();
+        counts[input1] += 1;
+    }
+
+    for (long long i = 0; i<256; ++i)
+    {
+        averageTimesPerByte[i] = averageTimesPerByte[i]/counts[i];
+    }
+
+    
+
+    ofstream myfile (outputFileName);
+
+    for (long i = 0; i<256; ++i)
+    {
+        myfile << averageTimesPerByte[i] << "," ;
+    }
+
+     myfile.close();
+
 }

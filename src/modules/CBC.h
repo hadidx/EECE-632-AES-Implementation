@@ -14,10 +14,12 @@ namespace AES{
         int nBlocks;
         int nPadding;
         bool IVOverwritten;
+        bool keyLocked;
+        bool paddedMessageLocked;
         void pad(cbyte* message, int size);
         void createMessageBlocks();
         int locatePadStart();
-        void generateIV();
+        unsigned int generateIV();
         void PRF(cbyte* input, cbyte* output=NULL);
         void PRFInv(cbyte* input, cbyte* output=NULL);
         cbyte* IV;

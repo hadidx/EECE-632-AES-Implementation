@@ -1,5 +1,6 @@
 #include "Helpers.h"
 #include <stdint.h>
+#include <cstring>
 
 using namespace AES;
 
@@ -117,27 +118,111 @@ void AES::copyFromState(cbyte output[16], cbyte state[4][4])
     output[15] = state[3][3];
 }
 
+uint8_t AES::galoisMulBranched(uint8_t a, uint8_t b)
+{
+
+    uint8_t p = 0;
+
+    for (int i = 0; i < 8; i++)
+    {
+        if (b & 0x01) // if LSB is active (equivalent to a '1' in the polynomial of g2)
+        {
+            p ^= a; // p += g1 in GF(2^8)
+        }
+
+        bool hiBit = (a & 0x80); // g1 >= 128 = 0100 0000
+        a <<= 1;                 // rotate g1 left (multiply by x in GF(2^8))
+        if (hiBit)
+        {
+            // must reduce
+            a ^= 0x1B; // g1 -= 00011011 == mod(x^8 + x^4 + x^3 + x + 1) = AES irreducible
+        }
+        b >>= 1; // rotate g2 right (divide by x in GF(2^8))
+    }
+
+    return p;
+}
+
+uint8_t AES::galoisMul(uint8_t a, uint8_t b)
+{
+
+    uint8_t product = 0;
+
+    for (int i = 0; i < 8; i++)
+    {
+
+        uint8_t LSBActiveMask = -(b & 0x01); 
+        product ^= (a & LSBActiveMask); //if least significant of b is present, then we add all elements of a to the product
+ 
+        uint8_t MSBActiveMask = -(a & 0x80)>>7;
+        a <<= 1; // multiply a by x in GF(2^8)
+
+        a ^= (0x1B & MSBActiveMask); // if MSB of a is active and we multiply by x => power greater than 7 then reduce by subtracting x^8 = x^4 + x^3 + x + 1
+        b >>= 1; // divide b by x in GF(2^8)
+    }
+
+    return product;
+}
+
+
+uint8_t AES::galoisMulMirror(uint8_t a, uint8_t b)
+{
+
+    uint8_t product = 0;
+    uint8_t productMirror = 0;
+    uint8_t aMirror = a;
+
+    for (int i = 0; i < 8; i++)
+    {
+
+        if(b & 0x01)
+        {
+            product ^= a; //if least significant of b is present, then we add all elements of a to the product
+        }
+        else
+        {
+            productMirror ^= a; 
+        }
+ 
+        int isMSBActive = (a & 0x80);
+        a <<= 1; // multiply a by x in GF(2^8)
+        if(isMSBActive)
+        {
+            a ^= 0x1B; // if MSB of a is active and we multiply by x => power greater than 7 then reduce by subtracting x^8 = x^4 + x^3 + x + 1
+        }
+        else
+        {
+            aMirror ^= 0x1B;
+        }
+        
+        aMirror = a;
+        productMirror = product;
+        b >>= 1; // divide b by x in GF(2^8)
+    }
+
+    return product;
+}
 
 
 #ifdef _WIN32
 #include <memoryapi.h>
-int AES::lockMemory(void* ptr, int size)
+bool AES::lockMemory(void* ptr, int size)
 {
     return VirtualLock(ptr, size);
 }
 
-int AES::unlockMemory(void* ptr, int size)
+bool AES::unlockMemory(void* ptr, int size)
 {
     return VirtualUnlock(ptr, size);
 }
 #else
 #include <sys/mman.h>
-int AES::lockMemory(void* ptr, int size)
+bool AES::lockMemory(void* ptr, int size)
 {
     return !-(mlock(ptr, size));
 }
 
-int AES::unlockMemory(void* ptr, int size)
+bool AES::unlockMemory(void* ptr, int size)
 {
     return !-(munlock(ptr, size));
 }
@@ -168,7 +253,7 @@ cbyte AES::sBoxLookup(int i)
 }
 
 
-cbyte AES::sBoxInterpolation(int i)
+cbyte AES::sBoxPeicewiseExpression(int i)
 {
     return 0x63*(i==0)+ 0x7C*(i==1)+ 0x77*(i==2)+ 0x7B*(i==3)+ 0xF2*(i==4)+ 0x6B*(i==5)+ 0x6F*(i==6)+ 0xC5*(i==7)+ 0x30*(i==8)+ 0x01*(i==9)+ 0x67*(i==10)+ 0x2B*(i==11)+ 0xFE*(i==12)+ 0xD7*(i==13)+ 0xAB*(i==14)+ 0x76*(i==15)+ 
     0xCA*(i==16)+ 0x82*(i==17)+ 0xC9*(i==18)+ 0x7D*(i==19)+ 0xFA*(i==20)+ 0x59*(i==21)+ 0x47*(i==22)+ 0xF0*(i==23)+ 0xAD*(i==24)+ 0xD4*(i==25)+ 0xA2*(i==26)+ 0xAF*(i==27)+ 0x9C*(i==28)+ 0xA4*(i==29)+ 0x72*(i==30)+ 
@@ -187,6 +272,19 @@ cbyte AES::sBoxInterpolation(int i)
     0x66*(i==211)+ 0x48*(i==212)+ 0x03*(i==213)+ 0xF6*(i==214)+ 0x0E*(i==215)+ 0x61*(i==216)+ 0x35*(i==217)+ 0x57*(i==218)+ 0xB9*(i==219)+ 0x86*(i==220)+ 0xC1*(i==221)+ 0x1D*(i==222)+ 0x9E*(i==223)+0xE1*(i==224)+ 0xF8*(i==225)+ 
     0x98*(i==226)+ 0x11*(i==227)+ 0x69*(i==228)+ 0xD9*(i==229)+ 0x8E*(i==230)+ 0x94*(i==231)+ 0x9B*(i==232)+ 0x1E*(i==233)+ 0x87*(i==234)+ 0xE9*(i==235)+ 0xCE*(i==236)+ 0x55*(i==237)+ 0x28*(i==238)+ 0xDF*(i==239)+0x8C*(i==240)+ 
     0xA1*(i==241)+ 0x89*(i==242)+ 0x0D*(i==243)+ 0xBF*(i==244)+ 0xE6*(i==245)+ 0x42*(i==246)+ 0x68*(i==247)+ 0x41*(i==248)+ 0x99*(i==249)+ 0x2D*(i==250)+ 0x0F*(i==251)+ 0xB0*(i==252)+ 0x54*(i==253)+ 0xBB*(i==254)+ 0x16*(i==255);
+}
+
+
+cbyte AES::sBoxPeicewiseLoop(int i)
+{
+    cbyte result = 0;
+
+    for (int j = 0; j<256; ++j)
+    {
+        result += sBoxLookup(j) * (i==j);
+    }
+
+    return result;
 }
 
 
@@ -211,4 +309,57 @@ cbyte AES::sBoxInvInterpolation(int i)
     0x2b*(i==241)+ 0x04*(i==242)+ 0x7e*(i==243)+ 0xba*(i==244)+ 0x77*(i==245)+ 0xd6*(i==246)+ 0x26*(i==247)+ 0xe1*(i==248)+ 0x69*(i==249)+ 0x14*(i==250)+ 0x63*(i==251)+ 0x55*(i==252)+ 0x21*(i==253)+ 0x0c*(i==254)+ 0x7d*(i==255);
 
 }
+
+
+uint8_t AES::inverse(uint8_t a)
+{
+    uint8_t inverse = a;
+    
+    for (int i = 0; i<253; i++)
+    {
+        inverse = galoisMul(inverse,a);
+    }
+    
+    return inverse;
+}
+
+ cbyte AES::xorAllbits(cbyte a)
+ {
+    cbyte value = a;
+    cbyte result = 0;
+    while (value) {
+        result ^= value & 1;
+        value >>= 1;
+    }
+
+    return result;
+ }
+
+
+ cbyte AES::leftRotate(cbyte n, unsigned int d)
+{
+    return (n << d)|(n >> (8 - d));
+}
+
+
+ cbyte AES::sBoxInverseAndAffinity(int i)
+ {
+    cbyte inverse = AES::inverse(i);
+
+    cbyte affineTransform = 0xf1;
+
+    cbyte result = 0;
+
+    for(int j = 0; j<8; ++j)
+    {
+        cbyte maskedInverse = inverse&affineTransform;
+        result |= (0x01<<j)&(0xff*xorAllbits(maskedInverse));
+
+        affineTransform = leftRotate(affineTransform,1);
+    }
+
+    result = result ^ 0x63;
+
+    return result;
+ }
 

@@ -10,7 +10,6 @@ namespace AES
 {
     
         
-        uint8_t galoisMul(uint8_t a, uint8_t b);
         void InvAddRoundKey(uint8_t state[4][4], const uint8_t roundKey[4][4]);
 
         void InvSubBytes(uint8_t state[4][4]);

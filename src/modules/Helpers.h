@@ -31,14 +31,20 @@ namespace AES
         const static AESMode AES192;
         const static AESMode AES256;
     };
+    
+    uint8_t galoisMulBranched(uint8_t a, uint8_t b);
+
+    uint8_t galoisMul(uint8_t a, uint8_t b);
+
+    uint8_t galoisMulMirror(uint8_t a, uint8_t b);
 
     void copyToState(cbyte input[16], cbyte state[4][4]);
 
     void copyFromState(cbyte output[16], cbyte state[4][4]);
 
-    int lockMemory(void* ptr, int size);
+    bool lockMemory(void* ptr, int size);
 
-    int unlockMemory(void* ptr, int size);
+    bool unlockMemory(void* ptr, int size);
 
 
     void copyMem(cbyte* dest, cbyte* src, int size);
@@ -55,9 +61,20 @@ namespace AES
 
     cbyte sBoxLookup(int i); //bad do not use
 
-    cbyte sBoxInterpolation(int i);
+    cbyte sBoxPeicewiseExpression(int i);
 
     cbyte sBoxInvInterpolation(int i);
+
+    cbyte sBoxPeicewiseLoop(int i);
+
+    cbyte sBoxInverseAndAffinity(int i);
     
+    cbyte inverse(cbyte a);
+
+    cbyte xorAllbits(cbyte a);
+
+    cbyte leftRotate(cbyte n, unsigned int d);
+
+
 }
 #endif

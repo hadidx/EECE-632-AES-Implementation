@@ -7,29 +7,6 @@ using namespace std;
 
 using namespace AES;
 
-uint8_t AES::galoisMul(uint8_t a, uint8_t b)
-{
-
-    uint8_t product = 0;
-
-    for (int i = 0; i < 8; i++)
-    {
-
-        int isLSBActive = (b & 0x01) != 0;
-        uint8_t LSBActiveMask = 0xFF*isLSBActive; 
-        product ^= (a & LSBActiveMask); //if least significant of b is present, then we add all elements of a to the product
- 
-        int isMSBActive = (a & 0x80) != 0;
-        uint8_t MSBActiveMask = 0xFF*isMSBActive;
-        a <<= 1; // multiply a by x in GF(2^8)
-
-        a ^= (0x1B & MSBActiveMask); // if MSB of a is active and we multiply by x => power greater than 7 then reduce by subtracting x^8 = x^4 + x^3 + x + 1
-        b >>= 1; // divide b by x in GF(2^8)
-    }
-
-    return product;
-}
-
 void AES::AddRoundKey(uint8_t state[4][4], const uint8_t roundKey[4][4])
 {
     for (uint8_t i = 0; i < 4; i++)
@@ -47,7 +24,7 @@ void AES::SubBytes(uint8_t state[4][4])
     {
         for (uint8_t j = 0; j < 4; j++)
         {
-            state[i][j] = AES::sBoxInterpolation(state[i][j]);
+            state[i][j] = AES::sBoxPeicewiseExpression(state[i][j]);
         }
     }
 }
@@ -111,10 +88,21 @@ void AES::Encrypt(uint8_t input[16], cbyte key[], uint8_t output[4][4], AESMode 
         int8_t numRounds = 0;
         uint8_t expandedKeyLength = 0;
         numRounds = mode.Nr;
-
+        
         word* expandedKey = initializeExpandedKey(mode.Nr);
 
-        AES::lockExpandedKeyMemory(expandedKey, mode);
+        if (expandedKey == NULL)
+        {
+            return; 
+        }
+
+        bool islocked = AES::lockExpandedKeyMemory(expandedKey, mode);
+
+        if(!islocked)
+        {
+            AES::clearExpandedKeyMem(expandedKey, mode);
+            return;
+        }
 
         AES::keyExpansion(key, expandedKey, mode);
         //expanded key is of length nk, expandedkey[0], expandedkey[1],... expandedkey[5] if nk = 6

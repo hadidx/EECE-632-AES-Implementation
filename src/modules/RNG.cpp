@@ -29,13 +29,15 @@ unsigned int AES::genCryptoRN(int n, cbyte* rn)
         random.read(reinterpret_cast<char*>(rn), n); 
         if(random)
         {
+            random.close(); 
             return 1;
         }
         else 
         {
+            random.close(); 
             return 0;
         }
-        random.close(); 
+        
     }
     else 
     {

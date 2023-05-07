@@ -19,10 +19,10 @@ void AES::RotWord(word w)
 
 void AES::SubWord(word w)
 {
-    w[0] = AES::sBoxInterpolation(w[0]);
-    w[1] = AES::sBoxInterpolation(w[1]);
-    w[2] = AES::sBoxInterpolation(w[2]);
-    w[3] = AES::sBoxInterpolation(w[3]);
+    w[0] = AES::sBoxPeicewiseExpression(w[0]);
+    w[1] = AES::sBoxPeicewiseExpression(w[1]);
+    w[2] = AES::sBoxPeicewiseExpression(w[2]);
+    w[3] = AES::sBoxPeicewiseExpression(w[3]);
 }
 
 void AES::xorRcon(word w, cbyte i)
@@ -37,28 +37,41 @@ word AES::xorWords(word w1, word w2)
 
 word* AES::initializeExpandedKey(int Nr)
 {
-    word* expandedKey = new word[4*(Nr + 1)];
+    word* expandedKey;
+
+    try{
+        expandedKey = new word[4*(Nr + 1)];
+    }
+    catch(...){
+
+        return NULL;
+    }
 
     return expandedKey;
 }
 
 
-void AES::lockExpandedKeyMemory(word* expandedKey, AESMode mode)
+bool AES::lockExpandedKeyMemory(word* expandedKey, AESMode mode)
 {
-    lockMemory(expandedKey, 4*(mode.Nr + 1));
-    for (int i = 0; i<4*(mode.Nr + 1); i++)
+    bool fail = false;
+    fail = !lockMemory(expandedKey, 4*(mode.Nr + 1));
+    if (fail)
     {
-        lockMemory(expandedKey[i], 4);
+        return 0;   
     }
+
+    return 1;
 }
 
-void AES::unlockExpandedKeyMemory(word* expandedKey, AESMode mode)
+bool AES::unlockExpandedKeyMemory(word* expandedKey, AESMode mode)
 {
-    unlockMemory(expandedKey, 4*(mode.Nr + 1));
-    for (int i = 0; i<4*(mode.Nr + 1); i++)
+bool fail = false;
+    fail = !unlockMemory(expandedKey, 4*(mode.Nr + 1));
+    if (fail)
     {
-        unlockMemory(expandedKey[i], 4);
+        return 0;
     }
+    return 1;
 }
 
 
