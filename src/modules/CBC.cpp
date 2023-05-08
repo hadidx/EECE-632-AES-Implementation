@@ -19,6 +19,8 @@ AES::CBC::CBC(cbyte* key, AESMode mode)
     }
     
     lockMemory(this->key,this->keyLen);
+    //here we followed practice MSC41-C. Never hard code sensitive information 
+    //we stored our key in a secure memory 
 }
 
 AES::CBC::~CBC()
@@ -91,7 +93,9 @@ void AES::CBC::createMessageBlocks()
 void AES::CBC::generateIV()
 {
     this->IV = new cbyte[16];
-    genCryptoRN(16, this->IV);
+    genCryptoRN(16, this->IV);   //here we randomly generate IV 
+    //we followed practice MSC30-C. Do not use the rand() function for generating pseudorandom numbers 
+    //we use a function from our implementation based on BCryptOpenAlgorithmProvider
 }
 
 void AES::CBC::overwriteIV(cbyte* IV)

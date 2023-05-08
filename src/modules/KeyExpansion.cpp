@@ -103,13 +103,13 @@ void AES::keyExpansion (cbyte* key, word* expandedKey, AESMode mode)
     {
         word previousWord = expandedKey[i - 1];
         word temp = initiallizeWord(previousWord[0], previousWord[1], previousWord[2], previousWord[3]);
-        if(i % mode.Nk == 0)
+        if(i % mode.Nk == 0)  //here we followed the practice EXP45-C. Do not perform assignments in selection statements 
         {
             RotWord(temp);
             SubWord(temp);
             xorRcon(temp, i/mode.Nk);
         }
-        else if(mode.Nk > 6 && i % mode.Nk == 4)
+        else if(mode.Nk > 6 && i % mode.Nk == 4) //also here we followed the practice EXP45-C. Do not perform assignments in selection statements 
         {
             SubWord(temp);
         }
