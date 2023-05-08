@@ -77,11 +77,6 @@ DEFINE_TEST(EncryptTest128bits)
 DEFINE_TEST(EncryptTest192bits)
 {
 
-    // static uint8_t state[4][4] = {
-    // {0x00, 0x44, 0x88, 0xcc},
-    // {0x11, 0x55, 0x99, 0xdd},
-    // {0x22, 0x66, 0xaa, 0xee},
-    // {0x33, 0x77, 0xbb, 0xff}};
     static uint8_t input[16] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
 
 
@@ -93,17 +88,27 @@ DEFINE_TEST(EncryptTest192bits)
     Encrypt(input, key, output, mode);
     
     TEST_EQ(output[0][0],0xdd);
+    TEST_EQ(output[0][1],0x86);
+    TEST_EQ(output[0][2],0x6e);
+    TEST_EQ(output[0][3],0xec);
+    TEST_EQ(output[1][0],0xa9);
+    TEST_EQ(output[1][1],0x4c);
+    TEST_EQ(output[1][2],0xaf);
+    TEST_EQ(output[1][3],0x0d);
+    TEST_EQ(output[2][0],0x7c);
+    TEST_EQ(output[2][1],0xdf);
+    TEST_EQ(output[2][2],0x70);
+    TEST_EQ(output[2][3],0x71);
+    TEST_EQ(output[3][0],0xa4);
+    TEST_EQ(output[3][1],0xe0);
+    TEST_EQ(output[3][2],0xa0);
+    TEST_EQ(output[3][3],0x91);
 
 }
 
 DEFINE_TEST(EncryptTest256bits)
 {
 
-    // static uint8_t state[4][4] = {
-    // {0x00, 0x44, 0x88, 0xcc},
-    // {0x11, 0x55, 0x99, 0xdd},
-    // {0x22, 0x66, 0xaa, 0xee},
-    // {0x33, 0x77, 0xbb, 0xff}};
     static uint8_t input[16] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
 
 
@@ -114,5 +119,22 @@ DEFINE_TEST(EncryptTest256bits)
     Encrypt(input, key, output, mode);
     
     TEST_EQ(output[0][0],0x8e);
+
+    TEST_EQ(output[0][0],0x8e);
+    TEST_EQ(output[0][1],0x51);
+    TEST_EQ(output[0][2],0xea);
+    TEST_EQ(output[0][3],0x4b);
+    TEST_EQ(output[1][0],0xa2);
+    TEST_EQ(output[1][1],0x67);
+    TEST_EQ(output[1][2],0xfc);
+    TEST_EQ(output[1][3],0x49);
+    TEST_EQ(output[2][0],0xb7);
+    TEST_EQ(output[2][1],0x45);
+    TEST_EQ(output[2][2],0x49);
+    TEST_EQ(output[2][3],0x60);
+    TEST_EQ(output[3][0],0xca);
+    TEST_EQ(output[3][1],0xbf);
+    TEST_EQ(output[3][2],0x90);
+    TEST_EQ(output[3][3],0x89);
 
 }

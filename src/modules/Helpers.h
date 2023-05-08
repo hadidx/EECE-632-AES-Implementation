@@ -61,11 +61,15 @@ namespace AES
 
     cbyte sBoxLookup(int i); //bad do not use
 
+    cbyte sBoxInvLookup(int i); 
+
     cbyte sBoxPeicewiseExpression(int i);
 
-    cbyte sBoxInvInterpolation(int i);
+    cbyte sBoxInvPeicewiseExpression(int i);
 
     cbyte sBoxPeicewiseLoop(int i);
+
+    cbyte sBoxInvPeicewiseLoop(int i);
 
     cbyte sBoxInverseAndAffinity(int i);
     

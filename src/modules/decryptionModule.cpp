@@ -25,7 +25,7 @@ void AES::InvSubBytes(uint8_t state[4][4])
     {
         for (uint8_t j = 0; j < 4; j++)
         {
-            state[i][j] = AES::sBoxInvInterpolation(state[i][j]);
+            state[i][j] = AES::sBoxInvPeicewiseExpression(state[i][j]);
         }
     }
 }
@@ -104,6 +104,7 @@ void AES::Decrypt(uint8_t input[16], cbyte key[], uint8_t output[4][4], AESMode 
 
         word* expandedKey = initializeExpandedKey(mode.Nr);
 
+        //return of expanded key memory not properly allocated
         if (expandedKey == NULL)
         {
             return; 
@@ -112,27 +113,28 @@ void AES::Decrypt(uint8_t input[16], cbyte key[], uint8_t output[4][4], AESMode 
 
 
         bool islocked = AES::lockExpandedKeyMemory(expandedKey, mode);
-
+        //return of key memory not locked
         if(!islocked)
         {
             AES::clearExpandedKeyMem(expandedKey, mode);
             return;
         }
 
+        //perform key expansion
         AES::keyExpansion(key, expandedKey, mode);
         int8_t expandedKeyLength = (mode.Nr+1)*4;
  
-
+        //first round key
         uint8_t roundKey [4][4]=
         {   {expandedKey[expandedKeyLength - 4][0], expandedKey[expandedKeyLength - 3][0], expandedKey[expandedKeyLength - 2][0], expandedKey[expandedKeyLength - 1][0]},
             {expandedKey[expandedKeyLength - 4][1], expandedKey[expandedKeyLength - 3][1], expandedKey[expandedKeyLength - 2][1], expandedKey[expandedKeyLength - 1][1]},
             {expandedKey[expandedKeyLength - 4][2], expandedKey[expandedKeyLength - 3][2], expandedKey[expandedKeyLength - 2][2], expandedKey[expandedKeyLength - 1][2]},
             {expandedKey[expandedKeyLength - 4][3], expandedKey[expandedKeyLength - 3][3], expandedKey[expandedKeyLength - 2][3], expandedKey[expandedKeyLength - 1][3]} };
 
-
+        //add first round key
         AES::AddRoundKey(state, roundKey);
 
-
+        //perform rounds
         for (int8_t roundCounter = numRounds -1 ; roundCounter >= 0; roundCounter--)
         {
             for (uint8_t i = 0; i < 4; i++)
@@ -155,6 +157,7 @@ void AES::Decrypt(uint8_t input[16], cbyte key[], uint8_t output[4][4], AESMode 
             }
         }
 
+        //unlock and clear expanded key memory
         AES::unlockExpandedKeyMemory(expandedKey, mode);
         AES::clearExpandedKeyMem(expandedKey, mode);
         // Copying final state to output

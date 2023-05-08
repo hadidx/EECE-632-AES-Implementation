@@ -121,26 +121,30 @@ void AES::copyFromState(cbyte output[16], cbyte state[4][4])
 uint8_t AES::galoisMulBranched(uint8_t a, uint8_t b)
 {
 
-    uint8_t p = 0;
+    uint8_t product = 0;
 
     for (int i = 0; i < 8; i++)
     {
-        if (b & 0x01) // if LSB is active (equivalent to a '1' in the polynomial of g2)
+        if (b & 0x01) 
         {
-            p ^= a; // p += g1 in GF(2^8)
+            //if least significant of b is present, 
+            //then we add all elements of a to the product
+            product ^= a; 
         }
 
-        bool hiBit = (a & 0x80); // g1 >= 128 = 0100 0000
-        a <<= 1;                 // rotate g1 left (multiply by x in GF(2^8))
-        if (hiBit)
+        bool reduce = (a & 0x80); 
+        a <<= 1; // multiply a by x in GF(2^8)    
+
+        // if MSB of a is active and we multiply by x 
+        //=> power greater than 7 then reduce by subtracting x^8 = x^4 + x^3 + x + 1            
+        if (reduce)
         {
-            // must reduce
-            a ^= 0x1B; // g1 -= 00011011 == mod(x^8 + x^4 + x^3 + x + 1) = AES irreducible
+            a ^= 0x1B; 
         }
-        b >>= 1; // rotate g2 right (divide by x in GF(2^8))
+        b >>= 1; 
     }
 
-    return p;
+    return product;
 }
 
 uint8_t AES::galoisMul(uint8_t a, uint8_t b)
@@ -165,46 +169,47 @@ uint8_t AES::galoisMul(uint8_t a, uint8_t b)
 }
 
 
-uint8_t AES::galoisMulMirror(uint8_t a, uint8_t b)
-{
+// uint8_t AES::galoisMulMirror(uint8_t a, uint8_t b)
+// {
 
-    uint8_t product = 0;
-    uint8_t productMirror = 0;
-    uint8_t aMirror = a;
+//     uint8_t product = 0;
+//     uint8_t productMirror = 0;
+//     uint8_t aMirror = a;
 
-    for (int i = 0; i < 8; i++)
-    {
+//     for (int i = 0; i < 8; i++)
+//     {
 
-        if(b & 0x01)
-        {
-            product ^= a; //if least significant of b is present, then we add all elements of a to the product
-        }
-        else
-        {
-            productMirror ^= a; 
-        }
+//         if(b & 0x01)
+//         {
+//             product ^= a; //if least significant of b is present, then we add all elements of a to the product
+//         }
+//         else
+//         {
+//             productMirror ^= a; 
+//         }
  
-        int isMSBActive = (a & 0x80);
-        a <<= 1; // multiply a by x in GF(2^8)
-        if(isMSBActive)
-        {
-            a ^= 0x1B; // if MSB of a is active and we multiply by x => power greater than 7 then reduce by subtracting x^8 = x^4 + x^3 + x + 1
-        }
-        else
-        {
-            aMirror ^= 0x1B;
-        }
+//         int isMSBActive = (a & 0x80);
+//         a <<= 1; // multiply a by x in GF(2^8)
+//         if(isMSBActive)
+//         {
+//             a ^= 0x1B; // if MSB of a is active and we multiply by x => power greater than 7 then reduce by subtracting x^8 = x^4 + x^3 + x + 1
+//         }
+//         else
+//         {
+//             aMirror ^= 0x1B;
+//         }
         
-        aMirror = a;
-        productMirror = product;
-        b >>= 1; // divide b by x in GF(2^8)
-    }
+//         aMirror = a;
+//         productMirror = product;
+//         b >>= 1; // divide b by x in GF(2^8)
+//     }
 
-    return product;
-}
+//     return product;
+// }
 
 
-#ifdef _WIN32
+#ifdef _WIN32 
+//windows implementation of the memory lock and unlock functions
 #include <memoryapi.h>
 bool AES::lockMemory(void* ptr, int size)
 {
@@ -216,6 +221,7 @@ bool AES::unlockMemory(void* ptr, int size)
     return VirtualUnlock(ptr, size);
 }
 #else
+//Unix implementation of the memory lock and unlock functions
 #include <sys/mman.h>
 bool AES::lockMemory(void* ptr, int size)
 {
@@ -230,10 +236,6 @@ bool AES::unlockMemory(void* ptr, int size)
 
 void AES::copyMem(cbyte* dest, cbyte* src, int size)
 {
-    // for (int i = 0; i<size; i++)
-    // {
-    //     dest[i] = src[i];
-    // }
     memcpy(dest, src, size);
 }
 
@@ -247,13 +249,19 @@ void AES::xorArrays(cbyte* a, cbyte* b, cbyte* output, int size)
     }
 }
 
-cbyte AES::sBoxLookup(int i)
+cbyte AES::sBoxLookup(int i) //uses a lookup table. Bad do not use
 {
     return AES::CommonVariables::S_BOX[i];
 }
 
+cbyte AES::sBoxInvLookup(int i)  //uses a lookup table. Bad do not use
+{
+    return AES::CommonVariables::Inv_S_BOX[i];
+}
 
-cbyte AES::sBoxPeicewiseExpression(int i)
+//piecewise expression for the S-Box. It is hardcoded with arithetic and boolean expressions
+//255 false statements and one true statement are evaluated for each query
+cbyte AES::sBoxPeicewiseExpression(int i) 
 {
     return 0x63*(i==0)+ 0x7C*(i==1)+ 0x77*(i==2)+ 0x7B*(i==3)+ 0xF2*(i==4)+ 0x6B*(i==5)+ 0x6F*(i==6)+ 0xC5*(i==7)+ 0x30*(i==8)+ 0x01*(i==9)+ 0x67*(i==10)+ 0x2B*(i==11)+ 0xFE*(i==12)+ 0xD7*(i==13)+ 0xAB*(i==14)+ 0x76*(i==15)+ 
     0xCA*(i==16)+ 0x82*(i==17)+ 0xC9*(i==18)+ 0x7D*(i==19)+ 0xFA*(i==20)+ 0x59*(i==21)+ 0x47*(i==22)+ 0xF0*(i==23)+ 0xAD*(i==24)+ 0xD4*(i==25)+ 0xA2*(i==26)+ 0xAF*(i==27)+ 0x9C*(i==28)+ 0xA4*(i==29)+ 0x72*(i==30)+ 
@@ -275,6 +283,9 @@ cbyte AES::sBoxPeicewiseExpression(int i)
 }
 
 
+//piecewise expression for the S-Box. It uses a loop and the original lookup table
+//255 false statements and one true statement are evaluated for each query
+//a lot of memory accesses make it slow
 cbyte AES::sBoxPeicewiseLoop(int i)
 {
     cbyte result = 0;
@@ -287,8 +298,9 @@ cbyte AES::sBoxPeicewiseLoop(int i)
     return result;
 }
 
-
-cbyte AES::sBoxInvInterpolation(int i)
+//piecewise expression for the S-Box Inverse. It uses a loop and the original lookup table
+//255 false statements and one true statement are evaluated for each query
+cbyte AES::sBoxInvPeicewiseExpression(int i)
 {
     return 0x52*(i==0)+ 0x09*(i==1)+ 0x6a*(i==2)+ 0xd5*(i==3)+ 0x30*(i==4)+ 0x36*(i==5)+ 0xa5*(i==6)+ 0x38*(i==7)+ 0xbf*(i==8)+ 0x40*(i==9)+ 0xa3*(i==10)+ 0x9e*(i==11)+ 0x81*(i==12)+ 0xf3*(i==13)+ 0xd7*(i==14)+ 0xfb*(i==15)+
     0x7c*(i==16)+ 0xe3*(i==17)+ 0x39*(i==18)+ 0x82*(i==19)+ 0x9b*(i==20)+ 0x2f*(i==21)+ 0xff*(i==22)+ 0x87*(i==23)+ 0x34*(i==24)+ 0x8e*(i==25)+ 0x43*(i==26)+ 0x44*(i==27)+ 0xc4*(i==28)+ 0xde*(i==29)+ 0xe9*(i==30)+ 
@@ -310,7 +322,24 @@ cbyte AES::sBoxInvInterpolation(int i)
 
 }
 
+//piecewise expression for the S-Box Inverse. It uses a loop and the original lookup table
+//255 false statements and one true statement are evaluated for each query
+//a lot of memory accesses make it slow
+cbyte AES::sBoxInvPeicewiseLoop(int i)
+{
+    cbyte result = 0;
 
+    for (int j = 0; j<256; ++j)
+    {
+        result += sBoxInvLookup(j) * (i==j);
+    }
+
+    return result;
+}
+
+
+//function to find the inverse of GF(2^8)
+//raise the number to power 254 to get the inverse in the same number of steps always
 uint8_t AES::inverse(uint8_t a)
 {
     uint8_t inverse = a;
@@ -323,6 +352,7 @@ uint8_t AES::inverse(uint8_t a)
     return inverse;
 }
 
+//xor all bits of a byte
  cbyte AES::xorAllbits(cbyte a)
  {
     cbyte value = a;
@@ -336,12 +366,12 @@ uint8_t AES::inverse(uint8_t a)
  }
 
 
- cbyte AES::leftRotate(cbyte n, unsigned int d)
+cbyte AES::leftRotate(cbyte n, unsigned int d)
 {
     return (n << d)|(n >> (8 - d));
 }
 
-
+//implementation of the S-Box using the inverse and affinity transformation
  cbyte AES::sBoxInverseAndAffinity(int i)
  {
     cbyte inverse = AES::inverse(i);
@@ -350,15 +380,15 @@ uint8_t AES::inverse(uint8_t a)
 
     cbyte result = 0;
 
-    for(int j = 0; j<8; ++j)
+    for(int j = 0; j<8; ++j) //perform the matrix multiplication
     {
         cbyte maskedInverse = inverse&affineTransform;
-        result |= (0x01<<j)&(0xff*xorAllbits(maskedInverse));
+        result |= (0x01<<j)&(0xff*xorAllbits(maskedInverse)); //xor all bits and place bit in correct position in byte
 
         affineTransform = leftRotate(affineTransform,1);
     }
 
-    result = result ^ 0x63;
+    result = result ^ 0x63; //xor with C
 
     return result;
  }

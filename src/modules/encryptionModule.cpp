@@ -89,32 +89,35 @@ void AES::Encrypt(uint8_t input[16], cbyte key[], uint8_t output[4][4], AESMode 
         uint8_t expandedKeyLength = 0;
         numRounds = mode.Nr;
         
+        //allocate expanded key memory
         word* expandedKey = initializeExpandedKey(mode.Nr);
-
+        //return of allocation fails
         if (expandedKey == NULL)
         {
             return; 
         }
 
         bool islocked = AES::lockExpandedKeyMemory(expandedKey, mode);
-
+        //return if locking fails
         if(!islocked)
         {
             AES::clearExpandedKeyMem(expandedKey, mode);
             return;
         }
-
+        //perform key expansion
         AES::keyExpansion(key, expandedKey, mode);
         //expanded key is of length nk, expandedkey[0], expandedkey[1],... expandedkey[5] if nk = 6
         // expandedkey[0] is a word of length 4 w[0], w[1], w[2], w[3]
+        //first round key
         uint8_t roundKey [4][4]=
         {   {expandedKey[0][0], expandedKey[1][0], expandedKey[2][0], expandedKey[3][0]},
             {expandedKey[0][1], expandedKey[1][1], expandedKey[2][1], expandedKey[3][1]},
             {expandedKey[0][2], expandedKey[1][2], expandedKey[2][2], expandedKey[3][2]},
             {expandedKey[0][3], expandedKey[1][3], expandedKey[2][3], expandedKey[3][3]}};
-
+        //add first round key
         AES::AddRoundKey (state, roundKey);
 
+        //perform rounds
         for (int8_t roundCounter = 1; roundCounter <= numRounds; roundCounter++)
         {
             for (uint8_t i = 0; i < 4; i++)
@@ -139,9 +142,10 @@ void AES::Encrypt(uint8_t input[16], cbyte key[], uint8_t output[4][4], AESMode 
             AES::AddRoundKey(state, roundKey);
         }
 
-        // Copying final state to output
+        //unclock and clear the memory of the expanded key
         AES::unlockExpandedKeyMemory(expandedKey, mode);
         AES::clearExpandedKeyMem(expandedKey, mode);
+        // Copying final state to output
         for (uint8_t i = 0; i < 4; i++)
         {
             for (uint8_t j = 0; j < 4; j++)

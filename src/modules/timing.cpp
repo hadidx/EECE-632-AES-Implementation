@@ -32,79 +32,51 @@ void timedFunction(uint8_t input[16])
     }
 }
 
-void AES::timeAES(cbyte key[16], AESMode mode, int targetByte, long long nTotalSamples, string outputFileName)
+void AES::timeSbox(int targetByte, long long nTotalSamples, string outputFileName)
 {
-    // uint8_t output[4][4];
-    // lockMemory(output,16);
-    // lockMemory(key,16);
-    long long nSamplesPerTargetByteValue = nTotalSamples/256;
 
-    // uint64_t* times = new uint64_t[nSamplesPerTargetByteValue];
-
-    double averageTimesPerByte[256];
+    double averageTimesPerByte[256]; 
     double counts[256];  
 
     for (int i = 0; i<256; i++)
     {
-        averageTimesPerByte[i] = 0;
+        averageTimesPerByte[i] = 0; //initialize averages to 0
     }
 
     for (int i = 0; i<256; i++)
     {
-        counts[i] = 1;
+        counts[i] = 1; //initialize counts to 1
     }
 
     std::random_device engine;
     
-    for (long long i = 0; i<256; ++i)
-    {
 
-        // uint8_t** inputs = new uint8_t*[nSamplesPerTargetByteValue];
-        // for(long long j = 0; j<nSamplesPerTargetByteValue; j++)
-        // {
-        //     uint8_t* input = new uint8_t[16];
-        //     for (long long k = 0; k<16; ++k)
-        //     {
-        //         input[k] = engine();
-        //     }
 
-        //     // input[targetByte] = engine();
-        // }
+    for (long long j = 0; j<nTotalSamples; ++j)
+    {   
 
-        for (long long j = 0; j<nSamplesPerTargetByteValue; ++j)
-        {   
-
-            uint8_t* input = new uint8_t[16];
-            for (long long k = 0; k<16; ++k)
-            {
-                input[k] = engine();
-            }
-            // for (long long k = 0; k<16; ++k)
-            // {
-            //     inputs[j][k];
-            // }
-            auto begin = chrono::high_resolution_clock::now();
-                timedFunction(input);
-            auto end = chrono::high_resolution_clock::now();
-            averageTimesPerByte[input[targetByte]] += chrono::duration_cast<chrono::nanoseconds>(end - begin).count();
-            counts[input[targetByte]] += 1;
-            delete input;
+        uint8_t* input = new uint8_t[16];
+        for (long long k = 0; k<16; ++k)
+        {
+            input[k] = engine();
         }
+        auto begin = chrono::high_resolution_clock::now();
+            timedFunction(input);
+        auto end = chrono::high_resolution_clock::now();
 
-        // for(long long j = 0; j<nSamplesPerTargetByteValue; j++)
-        // {
-        //     delete [] inputs[j];
-        // }
-
-        // delete [] inputs;
+        //at this stage we are only calculating the sum of times for each value of the target byte
+        averageTimesPerByte[input[targetByte]] += chrono::duration_cast<chrono::nanoseconds>(end - begin).count();
+        counts[input[targetByte]] += 1;
+        delete input;
     }
 
     for (long long i = 0; i<256; ++i)
     {
+        //divide by the total to get the average
         averageTimesPerByte[i] = averageTimesPerByte[i]/counts[i];
     }
 
-
+    //write the averages to a file
     ofstream myfile (outputFileName);
 
     for (long i = 0; i<256; ++i)
